@@ -26,7 +26,7 @@ function Get-MapAfterMovement($Map, $Y, $X, $Move) {
     $robot_y = $Y
     $robot_x = $X
 
-    if ($Move -eq "left" -and ((0..$X | ForEach-Object {$Map[$Y][$_]} | Join-String | Select-String "[O]*[\.][O]*@").Matches.Success)) { 
+    if ($Move -eq "left" -and ((0..$X | ForEach-Object {$Map[$Y][$_]} | Join-String | Select-String "O*\.O*@").Matches.Success)) { 
         $next_pos_value = "."
         $pos_value = $null
         
@@ -39,7 +39,7 @@ function Get-MapAfterMovement($Map, $Y, $X, $Move) {
         $robot_x--
     }
           
-    if ($Move -eq "right" -and (($X..$map_width | ForEach-Object {$Map[$Y][$_]} | Join-String | Select-String "@[O]*[\.][O]*").Matches.Success)) {
+    if ($Move -eq "right" -and (($X..$map_width | ForEach-Object {$Map[$Y][$_]} | Join-String | Select-String "@O*\.O*").Matches.Success)) {
         $next_pos_value = "."
         $pos_value = $null
         
@@ -52,7 +52,7 @@ function Get-MapAfterMovement($Map, $Y, $X, $Move) {
         $robot_x++
     }
 
-    if ($Move -eq "up" -and ((0..$Y | ForEach-Object {$Map[$_][$X]} | Join-String | Select-String "[O]*[\.][O]*@").Matches.Success)) {
+    if ($Move -eq "up" -and ((0..$Y | ForEach-Object {$Map[$_][$X]} | Join-String | Select-String "O*\.O*@").Matches.Success)) {
         $next_pos_value = "."
         $pos_value = $null
         
@@ -65,7 +65,7 @@ function Get-MapAfterMovement($Map, $Y, $X, $Move) {
         $robot_y--
     }
     
-    if ($Move -eq "down" -and (($Y..$map_height | ForEach-Object {$Map[$_][$X]} | Join-String | Select-String "@[O]*[\.][O]*").Matches.Success)) {
+    if ($Move -eq "down" -and (($Y..$map_height | ForEach-Object {$Map[$_][$X]} | Join-String | Select-String "@O*\.O*").Matches.Success)) {
         $next_pos_value = "."
         $pos_value = $null
         
