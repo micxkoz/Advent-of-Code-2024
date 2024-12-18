@@ -17,7 +17,7 @@ function Get-GridFromFile($File, $Height, $Width, $NumOfBytes) {
         if ($byte_counter -ge $NumOfBytes) {return $grid}
     }
 
-    Write-Error "NumOfBytes is larger then number of bytes in the file"
+    Write-Error "NumOfBytes is larger than number of bytes in the file"
 }
 
 function Get-ShortestPath([object[][]]$Grid, [int]$Height, [int]$Width) {
