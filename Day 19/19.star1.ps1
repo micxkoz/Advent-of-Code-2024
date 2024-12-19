@@ -18,7 +18,7 @@ function Get-DesignPossibility ($Design, $AvailablePatterns) {
             if ($Design -eq $pattern) {return $true}
             
             $new_design = $Design[$pattern.Length..$($Design.Length-1)] -join ""
-            if (Get-DesignPossibility $new_design $towel_patterns) {return $true}
+            if (Get-DesignPossibility $new_design $AvailablePatterns) {return $true}
         }
     }
     $impossible_designs[$Design] = $true
