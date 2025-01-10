@@ -9,135 +9,104 @@ function Get-DoorCodes($File) {
     return $door_codes
 }
 
-function Get-TranslatedNumericCode($Code) {
-    $translated_code = [List[int]]::new()
-    foreach ($char in $Code.ToCharArray()) {
-        switch ($char) {
-            "A" {$translated_code.Add("11")}
-            "0" {$translated_code.Add("10")}
-            "3" {$translated_code.Add("8")}
-            "2" {$translated_code.Add("7")}
-            "1" {$translated_code.Add("6")}
-            "6" {$translated_code.Add("5")}
-            "5" {$translated_code.Add("4")}
-            "4" {$translated_code.Add("3")}
-            "9" {$translated_code.Add("2")}
-            "8" {$translated_code.Add("1")}
-            "7" {$translated_code.Add("0")}
-        }
-    }
-    return $translated_code
-}
-
 function Get-ButtonPressesNumeric($Code) {
-    $button_presses = ""
-    
-    <#
-    +---+---+---+
-    | 0 | 1 | 2 |
-    +---+---+---+
-    | 3 | 4 | 5 |
-    +---+---+---+
-    | 6 | 7 | 8 |
-    +---+---+---+
-      9 | 10| 11|
-        +---+---+
-    #>
-    
-    $button = 11
-    $row = [Math]::Floor($button / 3)
-    $column = $button % 3
-    
-    $translated_code = Get-TranslatedNumericCode $Code
+    $keypad = @{
+        "7" = @{row = 0; col = 0}; "8" = @{row = 0; col = 1}; "9" = @{row = 0; col = 2};
+        "4" = @{row = 1; col = 0}; "5" = @{row = 1; col = 1}; "6" = @{row = 1; col = 2};
+        "1" = @{row = 2; col = 0}; "2" = @{row = 2; col = 1}; "3" = @{row = 2; col = 2};
+                                   "0" = @{row = 3; col = 1}; "A" = @{row = 3; col = 2}
+    }
+    $button = "A"
+    $row = $keypad[$button].row
+    $col = $keypad[$button].col
 
-    foreach ($next_button in $translated_code) {
-        $next_row = [Math]::Floor($next_button / 3)
-        $next_column = $next_button % 3
+    $button_presses = [Text.StringBuilder]::new()
+
+    foreach ($next_button in $Code.ToCharArray()) {
+        $next_row = $keypad["$next_button"].row
+        $next_col = $keypad["$next_button"].col
         
-        $column_presses = ""
-        if ($column - $next_column -gt 0) {$column_presses += $("<" * $($column - $next_column))}
-        elseif ($column - $next_column -lt 0) {$column_presses += $(">" * $($next_column - $column))}
-    
+        $col_presses = ""
+        if ($col - $next_col -gt 0) {$col_presses = "<" * ($col - $next_col)}
+        elseif ($col - $next_col -lt 0) {$col_presses = ">" * ($next_col - $col)}
+
         $row_presses = ""
-        if ($row - $next_row -gt 0) {$row_presses += $("^" * $($row - $next_row))}
-        elseif ($row - $next_row -lt 0) {$row_presses += $("v" * $($next_row - $row))}
-        
-        if ($button -in @(0,3,6) -and $next_button -in @(10, 11)) {
-            $button_presses += $column_presses + $row_presses
+        if ($row - $next_row -gt 0) {$row_presses = "^" * ($row - $next_row)}
+        elseif ($row - $next_row -lt 0) {$row_presses = "v" * ($next_row - $row)}
+
+        if ($row -eq 3 -and $next_col -eq 0) {
+            $button_presses.Append($row_presses + $col_presses + "A") | Out-Null
         }
-        elseif ($button -in @(10, 11) -and $next_button -in @(0,3,6)) {
-            $button_presses += $row_presses + $column_presses
+        elseif ($col -eq 0 -and $next_row -eq 3) {
+            $button_presses.Append($col_presses + $row_presses + "A") | Out-Null
+        }
+        elseif ($row_presses -eq "" -or $col_presses -eq "") {
+            $button_presses.Append($col_presses + $row_presses + "A") | Out-Null
         }
         else {
-            $row_column_score = (Get-ButtonPressesDirectional $(Get-ButtonPressesDirectional $($row_presses + $column_presses + "A"))).Length
-            $column_row_score = (Get-ButtonPressesDirectional $(Get-ButtonPressesDirectional $($column_presses + $row_presses + "A"))).Length
-
-            if ($row_column_score -lt $column_row_score) {$button_presses += $row_presses + $column_presses}
-            else {$button_presses += $column_presses + $row_presses}
+            $col_row = Get-ButtonPressesDirectional $($col_presses + $row_presses + "A")
+            $row_col = Get-ButtonPressesDirectional $($row_presses + $col_presses + "A")
+            while ($col_row.Length -eq $row_col.Length) {
+                $col_row = Get-ButtonPressesDirectional $col_row
+                $row_col = Get-ButtonPressesDirectional $row_col
+            }
+            if ($col_row.Length -lt $row_col.Length) {
+                $button_presses.Append($col_presses + $row_presses + "A") | Out-Null    
+            }
+            else {
+                $button_presses.Append($row_presses + $col_presses + "A") | Out-Null
+            }
         }
 
-        $button_presses += "A"
-
-        $button = $next_button
+        $button = $next_button.ToString()
         $row = $next_row
-        $column = $next_column
+        $col = $next_col
     }
 
+    $button_presses = $button_presses.ToString()
     return $button_presses
 }
 
-function Get-TranslatedDirectionalCode($Code) {
-    $translated_code = [List[int]]::new()
-    foreach ($char in $Code.ToCharArray()) {
-        switch ($char) {
-            "^" {$translated_code.Add("1")}
-            "A" {$translated_code.Add("2")}
-            "<" {$translated_code.Add("3")}
-            "v" {$translated_code.Add("4")}
-            ">" {$translated_code.Add("5")}
-        }
-    }
-    return $translated_code
-}
-
 function Get-ButtonPressesDirectional($Code) {
-    $button_presses = ""
-    
-    <#
-        +---+---+
-      0 | 1 | 2 |
-    +---+---+---+
-    | 3 | 4 | 5 |
-    +---+---+---+
-    #>
-
-    $starting_button = 2
-    $row = [Math]::Floor($starting_button / 3)
-    $column = $starting_button % 3
-
-    $translated_code = Get-TranslatedDirectionalCode $Code
-    
-    foreach ($next_button in $translated_code) {
-        $next_row = [Math]::Floor($next_button / 3)
-        $next_column = $next_button % 3
-        
-        $column_presses = ""
-        if ($column - $next_column -gt 0) {$column_presses += $("<" * $($column - $next_column))}
-        elseif ($column - $next_column -lt 0) {$column_presses += $(">" * $($next_column - $column))}
-    
-        $row_presses = ""
-        if ($row - $next_row -gt 0) {$row_presses += $("^" * $($row - $next_row))}
-        elseif ($row - $next_row -lt 0) {$row_presses += $("v" * $($next_row - $row))}
-        
-        if ($row -eq 0) {$button_presses += $row_presses + $column_presses}
-        else {$button_presses += $column_presses + $row_presses}
-
-        $button_presses += "A"
-
-        $row = $next_row
-        $column = $next_column
+    $keypad = @{
+                                   "^" = @{row = 0; col = 1}; "A" = @{row = 0; col = 2};
+        "<" = @{row = 1; col = 0}; "v" = @{row = 1; col = 1}; ">" = @{row = 1; col = 2}
     }
 
+    $button = "A"
+    $row = $keypad[$button].row
+    $col = $keypad[$button].col
+
+    $button_presses = [Text.StringBuilder]::new()
+
+    foreach ($next_button in $Code.ToCharArray()) {
+        $next_row = $keypad["$next_button"].row
+        $next_col = $keypad["$next_button"].col
+        
+        $col_presses = ""
+        if ($col - $next_col -gt 0) {$col_presses = "<" * ($col - $next_col)}
+        elseif ($col - $next_col -lt 0) {$col_presses = ">" * ($next_col - $col)}
+
+        $row_presses = ""
+        if ($row - $next_row -gt 0) {$row_presses = "^" * ($row - $next_row)}
+        elseif ($row - $next_row -lt 0) {$row_presses = "v" * ($next_row - $row)}
+
+        if ($row -eq 0 -and $next_col -eq 0) {
+            $button_presses.Append($row_presses + $col_presses + "A") | Out-Null
+        }
+        elseif ($col -eq 0 -and $next_row -eq 0) {
+            $button_presses.Append($col_presses + $row_presses + "A") | Out-Null
+        }
+        else {
+            $button_presses.Append($col_presses + $row_presses + "A") | Out-Null
+        }
+
+        $button = $next_button.ToString()
+        $row = $next_row
+        $col = $next_col
+    }
+
+    $button_presses = $button_presses.ToString()
     return $button_presses
 }
 
@@ -145,9 +114,17 @@ $door_codes = Get-DoorCodes $input_file
 
 $result = 0
 foreach ($door_code in $door_codes) {
-    $code_alpha = Get-ButtonPressesNumeric $door_code
-    $code_beta = Get-ButtonPressesDirectional $code_alpha
-    $code = Get-ButtonPressesDirectional $code_beta
-    $result += ([int]$code.Length * [int]$door_code.TrimEnd("A").TrimStart("0"))
+    #Write-Host "code: $door_code"
+    
+    $presses_for_numeric = Get-ButtonPressesNumeric $door_code
+    #Write-Host $presses_for_numeric
+    
+    $presses_for_directional_1 = Get-ButtonPressesDirectional $presses_for_numeric
+    #Write-Host $presses_for_directional_1
+    $presses_for_directional_2 = Get-ButtonPressesDirectional $presses_for_directional_1
+    #Write-Host $presses_for_directional_2
+    
+    $result += ([int]$presses_for_directional_2.Length * [int]$door_code.TrimEnd("A").TrimStart("0"))
+    #Write-Host
 }
 return $result
