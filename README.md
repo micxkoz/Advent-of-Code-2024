@@ -1,1 +1,1 @@
-https://adventofcode.com/2024
+![Personal Times](./.images/Personal%20Times.webp)
